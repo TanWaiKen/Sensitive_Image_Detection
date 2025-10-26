@@ -1,36 +1,19 @@
-import torch
-import torchvision.transforms as transforms
-from PIL import Image
+from ultralytics import YOLO
 from flask import Flask, request, jsonify
 import json
-import io
 import os
+import base64
+import io
+from PIL import Image
 
 app = Flask(__name__)
 
-# Load model and class names
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# Load model architecture
-import torchvision.models as models
-model = models.resnet18(weights=None)
-model.fc = torch.nn.Linear(model.fc.in_features, 5)  # 5 classes
-
-# Load saved weights
-model.load_state_dict(torch.load('model_best.pt', map_location=device))
-model.to(device)
-model.eval()
+# Load YOLO model
+model = YOLO('best.pt')
 
 with open('class_names.json', 'r') as f:
     class_data = json.load(f)
     class_names = class_data['class_names']
-
-# Image preprocessing
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -39,27 +22,35 @@ def health_check():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image provided'}), 400
+        if 'image_base64' not in request.json:
+            return jsonify({'error': 'image_base64 required'}), 400
         
-        file = request.files['image']
-        image = Image.open(io.BytesIO(file.read())).convert('RGB')
+        # Decode base64 image
+        image_data = base64.b64decode(request.json['image_base64'])
+        image = Image.open(io.BytesIO(image_data))
+        if image.mode in ('RGBA', 'LA', 'P'):
+            image = image.convert('RGB')
+        temp_path = f"temp_image_{os.getpid()}.jpg"
+        image.save(temp_path)
         
-        # Preprocess image
-        input_tensor = transform(image).unsqueeze(0).to(device)
-        
-        # Make prediction
-        with torch.no_grad():
-            outputs = model(input_tensor)
-            probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
-            predicted_class = torch.argmax(probabilities).item()
-            confidence = probabilities[predicted_class].item()
-        
-        return jsonify({
-            'predicted_class': class_names[predicted_class],
-            'confidence': float(confidence),
-            'all_probabilities': {class_names[i]: float(probabilities[i]) for i in range(len(class_names))}
-        })
+        try:
+            # Make prediction with YOLO
+            results = model.predict(temp_path, imgsz=224, verbose=False)
+            
+            # Extract probabilities
+            probs = results[0].probs.data.cpu().numpy()
+            predicted_class = probs.argmax()
+            confidence = float(probs[predicted_class])
+            
+            return jsonify({
+                'predicted_class': class_names[predicted_class],
+                'confidence': confidence,
+                'all_probabilities': {class_names[i]: float(probs[i]) for i in range(len(class_names))}
+            })
+        finally:
+            # Clean up temp file
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
