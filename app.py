@@ -12,7 +12,7 @@ app = Flask(__name__)
 try:
     model = YOLO('best.pt')
 except:
-    model = None  # Handle missing model file
+    model = None
 
 with open('class_names.json', 'r') as f:
     class_data = json.load(f)
