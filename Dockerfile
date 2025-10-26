@@ -1,6 +1,7 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+# Allow statements and log messages to immediately appear in the logs
+ENV PYTHONUNBUFFERED True
 
 # Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y \
@@ -11,11 +12,13 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+# Copy local code to the container image
+ENV APP_HOME /app
+WORKDIR $APP_HOME
+COPY . ./
+
+# Install production dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-
-EXPOSE 8080
-
-CMD ["python", "app.py"]
+# Run the web service on container startup with gunicorn
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
