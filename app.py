@@ -9,7 +9,10 @@ from PIL import Image
 app = Flask(__name__)
 
 # Load YOLO model
-model = YOLO('best.pt')
+try:
+    model = YOLO('best.pt')
+except:
+    model = None  # Handle missing model file
 
 with open('class_names.json', 'r') as f:
     class_data = json.load(f)
@@ -22,6 +25,9 @@ def health_check():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        if model is None:
+            return jsonify({'error': 'Model not loaded'}), 500
+            
         if 'image_base64' not in request.json:
             return jsonify({'error': 'image_base64 required'}), 400
         
