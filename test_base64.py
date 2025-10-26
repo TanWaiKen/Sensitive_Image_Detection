@@ -21,7 +21,7 @@ def test_base64_api(image_path, api_url):
         print(f"Error: {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
-    API_URL = "http://127.0.0.1:8080"
+    API_URL = "https://sensitive-image-detection-1082344891584.asia-southeast1.run.app"
     IMAGE_PATH = r"C:\Users\tanwa\source\repos\Huawei ML\pavilion_kl.png"
     
     test_base64_api(IMAGE_PATH, API_URL)
