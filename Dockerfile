@@ -5,13 +5,12 @@ ENV PYTHONUNBUFFERED True
 
 # Install system dependencies for OpenCV
 RUN apt-get update && apt-get install -y \
-    libglib2.0-0 \
+    ffmpeg \
     libsm6 \
     libxext6 \
+    libglib2.0-0 \
     libxrender1 \
     libgomp1 \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy local code to the container image
