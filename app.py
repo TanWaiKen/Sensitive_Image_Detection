@@ -18,6 +18,17 @@ with open('class_names.json', 'r') as f:
     class_data = json.load(f)
     class_names = class_data['class_names']
 
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({
+        'service': 'Sensitive Image Detection API',
+        'status': 'running',
+        'endpoints': {
+            'health': '/health',
+            'predict': '/predict (POST)'
+        }
+    })
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'})
