@@ -1,0 +1,10 @@
+{
+    "num_classes": 5,
+    "class_names": [
+        "bank_card",
+        "drvlic",
+        "id_card",
+        "non_sensitive",
+        "passport"
+    ]
+}
