@@ -10,7 +10,15 @@ app = Flask(__name__)
 
 # Load model and class names
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = torch.load('model_best.pt', map_location=device)
+
+# Load model architecture
+import torchvision.models as models
+model = models.resnet18(weights=None)
+model.fc = torch.nn.Linear(model.fc.in_features, 5)  # 5 classes
+
+# Load saved weights
+model.load_state_dict(torch.load('model_best.pt', map_location=device))
+model.to(device)
 model.eval()
 
 with open('class_names.json', 'r') as f:
